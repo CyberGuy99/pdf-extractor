@@ -1,4 +1,5 @@
 import argparse
+import os
 import sys
 import fitz
 
@@ -35,6 +36,12 @@ def main():
     
     try:
         doc = fitz.open(args.pdf_path)
+        pdf_title = doc.metadata.get("title", args.pdf_path.split(".pdf")[0]).split(" ")
+        pdf_title = "_".join(pdf_title) if pdf_title else "output"
+        second_underscore_idx = pdf_title.find("_", pdf_title.find("_") + 1)
+        if second_underscore_idx != -1:
+            pdf_title = pdf_title[:second_underscore_idx]
+        print(f"Opened PDF: '{pdf_title}' with {doc.page_count} pages.")
     except Exception as e:
         print(f"Failed to open PDF: {e}")
         sys.exit(1)
@@ -44,17 +51,17 @@ def main():
     # 1. Automatic Extraction
     if args.figures or args.all:
         print("\n[*] Extracting Figures...")
-        svgs = extract_figures(doc, layout=args.layout)
+        svgs = extract_figures(doc, layout=args.layout, save_dir=f"{pdf_title}_figures")
         print(f"    Saved {len(svgs)} figures.")
 
     if args.tables or args.all:
         print("\n[*] Extracting Tables (Automated)...")
-        tables = extract_tables(doc, layout=args.layout)
+        tables = extract_tables(doc, layout=args.layout, save_dir=f"{pdf_title}_tables")
         print(f"    Saved {len(tables)} tables.")
 
     if args.equations or args.all:
         print("\n[*] Extracting Equations (Automated)...")
-        eqs = extract_equations(doc, layout=args.layout)
+        eqs = extract_equations(doc, layout=args.layout, save_dir=f"{pdf_title}_equations")
         print(f"    Saved {len(eqs)} equations.")
 
     if args.toc or args.all:
@@ -76,13 +83,15 @@ def main():
 
     # 2. Human-in-the-loop Extraction
     if args.highlights:
+        os.makedirs(f"{pdf_title}_highlights", exist_ok=True)
         print("\n[*] Extracting SVGs from PDF Highlights...")
-        hl_files = extract_highlights(doc)
+        hl_files = extract_highlights(doc, save_dir=f"{pdf_title}_highlights")
         print(f"    Saved {len(hl_files)} custom highlight crops.")
 
     if args.triage:
+        os.makedirs(f"{pdf_title}_triage", exist_ok=True)
         print("\n[*] Launching Manual Triage UI...")
-        run_triage(doc, layout=args.layout)
+        run_triage(doc, layout=args.layout, save_dir=f"{pdf_title}_triage")
         # UI prints its own save logs
             
     doc.close()

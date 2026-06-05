@@ -1,11 +1,13 @@
 """
 Module for isolating and extracting standalone mathematical equations.
 """
+import os
+
 import fitz
 import re
 from tools.utils import export_svg_from_rect
 
-def extract_equations(doc, layout='double'):
+def extract_equations(doc, layout='double', save_dir="equations"):
     """
     Scans document text lines for standard academic equation numbering 
     (e.g., "(1)", "(A2)") on the margins, and creates a vertical extraction band.
@@ -13,11 +15,13 @@ def extract_equations(doc, layout='double'):
     Args:
         doc (fitz.Document): The loaded PyMuPDF document.
         layout (str): 'single' or 'double' column layout.
-        
+        save_dir (str): The directory where extracted equations will be saved.
+
     Returns:
         list: Filenames of the extracted equation SVGs.
     """
     written_files = []
+    os.makedirs(save_dir, exist_ok=True)
     # Regex targets equation tags hugging the end of a line
     eq_pattern = re.compile(r'\(\s*[A-Z]?\d+\s*\)$') 
     
@@ -45,7 +49,7 @@ def extract_equations(doc, layout='double'):
                             eq_zone = fitz.Rect(0, max(0, bbox.y0 - vertical_pad), page.rect.width, min(page.rect.height, bbox.y1 + vertical_pad))
 
                         svg_filename = f"equation_page_{page_num + 1}_eq_{idx + 1}.svg"
-                        export_svg_from_rect(page, eq_zone, svg_filename)
+                        export_svg_from_rect(page, eq_zone, f"{save_dir}/{svg_filename}")
                         written_files.append(svg_filename)
                         
                         # Break out of the line loop to prevent double-extracting wrapped text

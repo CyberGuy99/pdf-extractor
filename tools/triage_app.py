@@ -3,6 +3,8 @@ Module for the Human-in-the-Loop (HITL) Triage GUI.
 Allows users to rapidly accept, reject, or manually redraw extraction boundaries 
 for difficult equations and tables via a Tkinter interface.
 """
+import os
+
 import fitz
 import re
 import sys
@@ -14,11 +16,12 @@ class PDFTriageApp:
     Tkinter application class managing the image viewing, navigation state, 
     and mouse-driven boundary redrawing for candidate crops.
     """
-    def __init__(self, root, doc, candidates):
+    def __init__(self, root, doc, candidates, save_dir="triage_outputs"):
         self.root = root
         self.doc = doc
         self.candidates = candidates
         self.current_idx = 0
+        self.save_dir = save_dir
         
         self.root.title("PDF Extraction Triage")
         self.root.geometry("1000x800")
@@ -133,7 +136,7 @@ class PDFTriageApp:
         else:
             final_bbox = cand['bbox']
             
-        filename = f"{cand['type']}_page_{cand['page']+1}_idx_{self.current_idx+1}.svg"
+        filename = f"{self.save_dir}/{cand['type']}_page_{cand['page']+1}_idx_{self.current_idx+1}.svg"
         export_svg_from_rect(page, final_bbox, filename)
         print(f"[+] Saved: {filename}")
         
@@ -188,7 +191,7 @@ def generate_candidates(doc, layout='double'):
                         break
     return candidates
 
-def run_triage(doc, layout='double'):
+def run_triage(doc, layout='double', save_dir="triage_outputs"):
     """
     Initializes and launches the Tkinter Triage application.
     """
@@ -207,5 +210,6 @@ def run_triage(doc, layout='double'):
     root.attributes('-topmost', True)
     root.after_idle(root.attributes, '-topmost', False)
     
-    app = PDFTriageApp(root, doc, candidates)
+    os.makedirs(save_dir, exist_ok=True)
+    app = PDFTriageApp(root, doc, candidates, save_dir=save_dir)
     root.mainloop()

@@ -1,10 +1,12 @@
 """
 Module for automatically detecting and extracting vector figures from PDFs.
 """
+import os
+
 import fitz
 from tools.utils import export_svg_from_rect
 
-def extract_figures(doc, layout='double', prefix='Fig.'):
+def extract_figures(doc, layout='double', prefix='Fig.', save_dir="figures"):
     """
     Scans a document for figure captions and uses vector drawing coordinates 
     (lines, fills, curves) above the caption to dynamically calculate a 
@@ -14,11 +16,12 @@ def extract_figures(doc, layout='double', prefix='Fig.'):
         doc (fitz.Document): The loaded PyMuPDF document.
         layout (str): 'single' or 'double' column layout for boundary logic.
         prefix (str): The text prefix identifying a caption (e.g., 'Fig.').
-        
+        save_dir (str): The directory where extracted figures will be saved.
     Returns:
         list: A list of filenames corresponding to the saved SVGs.
     """
     written_files = []
+    os.makedirs(save_dir, exist_ok=True)
     
     for page_num, page in enumerate(doc):
         page_center = page.rect.width / 2
@@ -72,7 +75,7 @@ def extract_figures(doc, layout='double', prefix='Fig.'):
                     figure_zone = fitz.Rect(0, max(0, rect.y0 - 350), page.rect.width, rect.y0)
             
             svg_filename = f"figure_page_{page_num + 1}_fig_{idx + 1}.svg"
-            export_svg_from_rect(page, figure_zone, svg_filename)
+            export_svg_from_rect(page, figure_zone, f"{save_dir}/{svg_filename}")
             written_files.append(svg_filename)
 
     return written_files

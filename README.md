@@ -31,22 +31,33 @@ A robust suite of Python tools designed to programmatically parse, inspect, and 
    ```
    *(Note: Linux/WSL users must ensure Tkinter is installed globally via `sudo apt install python3-tk`).*
 
+## The Tiered Workflow Strategy
+
+Because PDF layouts can vary wildly between journals, this tool is built around a tiered extraction philosophy, balancing automation speed with human accuracy:
+
+* **Tier 1: Headless Bulk Automation (`--equations`, `--tables`)**
+  Maximum speed, zero human effort. Ideal for researchers scraping hundreds of standard IEEE papers at once to build datasets. Processes everything in the background via automated heuristics.
+* **Tier 2: The Triage App (`--triage`)**
+  Medium speed, low human effort. The algorithm guesses the boundaries, and a human rapidly approves, rejects, or adjusts them via a fast GUI. Perfect for processing a handful of structurally complex papers with perfect accuracy.
+* **Tier 3: Native Highlighting (`--highlights`)**
+  Low speed, high human effort. The user manually highlights targets in a standard PDF viewer, and the script strictly extracts those coordinates. The ultimate fallback for totally unstructured or bizarrely formatted legacy documents.
+
 ## Usage Modes
 
-The tool operates via `main.py` and supports three primary workflows:
+The tool operates via `main.py` and supports the following workflows:
 
-### 1. Fully Automated Mode
-Runs heuristics across the entire document. Best suited for standard IEEE double-column papers.
+### 1. Fully Automated Mode (Tier 1)
+Runs heuristics blindly across the entire document.
 ```bash
 # Run all automated extractors
 python main.py paper.pdf --all
 
-# Or run specific modules
-python main.py paper.pdf --figures --citations
+# Or run specific headless modules
+python main.py paper.pdf --figures --equations --citations
 ```
 
-### 2. Human-in-the-Loop (Triage Mode)
-Generates candidate crops for equations and tables, then launches a fast GUI for manual validation.
+### 2. Human-in-the-Loop Triage Mode (Tier 2)
+Generates candidate crops for equations and tables, then launches a fast Tkinter GUI for manual validation.
 ```bash
 python main.py paper.pdf --triage
 ```
@@ -54,26 +65,29 @@ python main.py paper.pdf --triage
 * **Left Arrow:** Reject and discard candidate.
 * **Mouse Drag:** Draw a custom bounding box to fix an incorrect crop.
 
-### 3. Native Highlight Mode
+### 3. Native Highlight Mode (Tier 3)
 Open your PDF in any standard viewer (Acrobat, Preview, Foxit) and use the yellow highlight tool to mark equations, charts, or text blocks. Save the document, then run:
 ```bash
 python main.py highlighted_paper.pdf --highlights
 ```
-The script will cleanly remove the highlighter annotations and extract SVGs of the selected areas.
+The script will cleanly remove the highlighter annotations from memory and extract unmasked SVGs of the selected areas.
+
+## Outputs
+All outputs are saved in a folder determined by (1) the pdf's title or filepath (as a backup) and (2) the usage mode.
 
 ## Command Line Arguments
 
 | Argument | Description |
 | :--- | :--- |
 | `-l`, `--layout` | `single` or `double` (default). Adjusts the spatial scanning logic. |
-| `--figures` | Extract figures to SVG. |
-| `--tables` | Extract tables to SVG. |
-| `--equations` | Extract numbered equations to SVG. |
+| `--figures` | Headless extraction of figures to SVG. |
+| `--tables` | Headless extraction of tables to SVG. |
+| `--equations` | Headless extraction of numbered equations to SVG. |
 | `--toc` | Generate a terminal-based Table of Contents. |
 | `--citations` | Validate internal `[#]` citation linkages. |
 | `--triage` | Launch the Tkinter review GUI. |
 | `--highlights`| Extract SVGs from native PDF highlight annotations. |
-| `--all` | Execute all automated modules. |
+| `--all` | Execute all headless automated modules. |
 
 ## Contributing
 
