@@ -1,0 +1,27 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environments
+venv/
+env/
+.venv/
+env.bak/
+
+# IDE / OS Files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Project Outputs (Prevent committing generated images)
+*.svg
+*.png
+*.jpg
+*.jpeg
+
+# PDFs (Prevent committing copyrighted or private research papers)
+*.pdf
+# (Optional) Uncomment the line below if you want to include a specific test PDF in the repo
+# !sample_paper.pdf
