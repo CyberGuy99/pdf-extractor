@@ -1,7 +1,22 @@
+"""
+Module for parsing manual PDF user annotations and exporting them as SVGs.
+"""
 import fitz
-from utils import export_svg_from_rect
+from tools.utils import export_svg_from_rect
 
 def extract_highlights(doc):
+    """
+    Executes a two-pass extraction on user-generated PDF highlights.
+    Pass 1: Records the coordinates of all highlight annotations.
+    Pass 2: Deletes the highlights from memory to prevent text masking, 
+            and exports the clean bounding boxes.
+            
+    Args:
+        doc (fitz.Document): The loaded PyMuPDF document.
+        
+    Returns:
+        list: Filenames of the extracted highlight SVGs.
+    """
     written_files = []
     
     for page_num, page in enumerate(doc):
@@ -26,7 +41,7 @@ def extract_highlights(doc):
                 annots_to_delete.append(annot)
                 
         # Step 2: Delete the highlight annotations so they don't mask the text
-        # (This only deletes them in memory, it won't ruin your original PDF file)
+        # (This only deletes them in memory, it won't ruin the original PDF file)
         for annot in annots_to_delete:
             page.delete_annot(annot)
             

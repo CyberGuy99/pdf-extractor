@@ -1,10 +1,19 @@
+"""
+Module for the Human-in-the-Loop (HITL) Triage GUI.
+Allows users to rapidly accept, reject, or manually redraw extraction boundaries 
+for difficult equations and tables via a Tkinter interface.
+"""
 import fitz
 import re
 import sys
 import tkinter as tk
-from utils import export_svg_from_rect
+from tools.utils import export_svg_from_rect
 
 class PDFTriageApp:
+    """
+    Tkinter application class managing the image viewing, navigation state, 
+    and mouse-driven boundary redrawing for candidate crops.
+    """
     def __init__(self, root, doc, candidates):
         self.root = root
         self.doc = doc
@@ -46,6 +55,8 @@ class PDFTriageApp:
         
         self.user_rect = None
         self.user_coords = None
+        
+        # Scaling factor to map 150 DPI canvas pixels back to 72 DPI PDF coordinates
         self.scale = 150 / 72  
         
         self.load_current()
@@ -74,7 +85,7 @@ class PDFTriageApp:
     def load_current(self):
         if self.current_idx >= len(self.candidates):
             print("\nAll candidates processed!")
-            self.root.destroy() # Safely destroy window to return control to main.py
+            self.root.destroy() 
             return
             
         cand = self.candidates[self.current_idx]
@@ -135,6 +146,10 @@ class PDFTriageApp:
         self.load_current()
 
 def generate_candidates(doc, layout='double'):
+    """
+    Pre-scans the document using permissive regex to guess locations of 
+    equations and tables, generating bounding boxes for manual UI triage.
+    """
     candidates = []
     eq_pattern = re.compile(r'\(\s*[A-Z]?\d+\s*\)$')
     table_pattern = re.compile(r'^TABLE\s+[IVX]+', re.IGNORECASE)
@@ -174,6 +189,9 @@ def generate_candidates(doc, layout='double'):
     return candidates
 
 def run_triage(doc, layout='double'):
+    """
+    Initializes and launches the Tkinter Triage application.
+    """
     print("[*] Scanning document for UI triage candidates...")
     candidates = generate_candidates(doc, layout=layout)
     
@@ -191,10 +209,3 @@ def run_triage(doc, layout='double'):
     
     app = PDFTriageApp(root, doc, candidates)
     root.mainloop()
-
-if __name__ == '__main__':
-    if len(sys.argv) < 2:
-        print("Usage: python triage_app.py <pdf_path>")
-        sys.exit(1)
-    doc = fitz.open(sys.argv[1])
-    run_triage(doc, layout='double')

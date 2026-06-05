@@ -1,14 +1,30 @@
+"""
+Module for automatically isolating and extracting academic tables.
+"""
 import fitz
-from utils import export_svg_from_rect
+from tools.utils import export_svg_from_rect
 
 def extract_tables(doc, layout='double', prefix='TABLE'):
+    """
+    Scans a document for table captions and uses vector drawing coordinates 
+    (grid meshes, underlines) below the caption to dynamically frame the table.
+    
+    Args:
+        doc (fitz.Document): The loaded PyMuPDF document.
+        layout (str): 'single' or 'double' column layout.
+        prefix (str): The text prefix identifying a table (e.g., 'TABLE').
+        
+    Returns:
+        list: Filenames of the extracted table SVGs.
+    """
     written_files = []
     
     for page_num, page in enumerate(doc):
         page_center = page.rect.width / 2
         raw_captions = sorted(page.search_for(prefix), key=lambda r: r.y0)
         
-        # Increased deduplication threshold to 150 to prevent double-captures
+        # Deduplication: Prevents double-capturing if the word "TABLE" appears 
+        # both in the caption and in the immediate table headers below it.
         captions = []
         for rect in raw_captions:
             if not captions or abs(rect.y0 - captions[-1].y0) > 150:
@@ -18,6 +34,7 @@ def extract_tables(doc, layout='double', prefix='TABLE'):
             caption_column = "left" if rect.x0 < page_center and layout == 'double' else "right" if layout == 'double' else "single"
             associated_drawings = []
             
+            # Tables typically render BELOW their captions (unlike figures)
             for d in page.get_drawings():
                 d_rect = d["rect"]
                 if rect.y1 - 5 <= d_rect.y0 <= rect.y1 + 400:

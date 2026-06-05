@@ -3,13 +3,13 @@ import sys
 import fitz
 
 # Import all modules
-from figure_extractor import extract_figures
-from table_isolator import extract_tables
-from toc_generator import generate_toc
-from equation_extractor import extract_equations
-from citation_validator import validate_citations
-from highlight_extractor import extract_highlights
-from triage_app import run_triage
+from tools.figure_extractor import extract_figures
+from tools.table_isolator import extract_tables
+from tools.toc_generator import generate_toc
+from tools.equation_extractor import extract_equations
+from tools.citation_validator import validate_citations
+from tools.highlight_extractor import extract_highlights
+from tools.triage_app import run_triage
 
 def main():
     parser = argparse.ArgumentParser(description="Advanced Academic PDF Inspection Suite")

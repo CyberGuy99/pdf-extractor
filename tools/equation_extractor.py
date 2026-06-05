@@ -1,9 +1,24 @@
+"""
+Module for isolating and extracting standalone mathematical equations.
+"""
 import fitz
 import re
-from utils import export_svg_from_rect
+from tools.utils import export_svg_from_rect
 
 def extract_equations(doc, layout='double'):
+    """
+    Scans document text lines for standard academic equation numbering 
+    (e.g., "(1)", "(A2)") on the margins, and creates a vertical extraction band.
+    
+    Args:
+        doc (fitz.Document): The loaded PyMuPDF document.
+        layout (str): 'single' or 'double' column layout.
+        
+    Returns:
+        list: Filenames of the extracted equation SVGs.
+    """
     written_files = []
+    # Regex targets equation tags hugging the end of a line
     eq_pattern = re.compile(r'\(\s*[A-Z]?\d+\s*\)$') 
     
     for page_num, page in enumerate(doc):
@@ -11,13 +26,14 @@ def extract_equations(doc, layout='double'):
         page_center = page.rect.width / 2
         
         for idx, b in enumerate(blocks):
-            if b['type'] == 0:
+            if b['type'] == 0:  # Ensure block is text, not an image
                 for line in b["lines"]:
                     text = "".join([span["text"] for span in line["spans"]]).strip()
                     if eq_pattern.search(text):
                         bbox = fitz.Rect(line["bbox"])
                         
-                        # Drastically increased padding to prevent vertical cropping of tall matrices/integrals
+                        # 75-point padding acts as a wide safety net to prevent 
+                        # vertical cropping of tall matrices or double integrals.
                         vertical_pad = 75 
                         
                         if layout == 'double':
@@ -31,6 +47,8 @@ def extract_equations(doc, layout='double'):
                         svg_filename = f"equation_page_{page_num + 1}_eq_{idx + 1}.svg"
                         export_svg_from_rect(page, eq_zone, svg_filename)
                         written_files.append(svg_filename)
+                        
+                        # Break out of the line loop to prevent double-extracting wrapped text
                         break
                         
     return written_files

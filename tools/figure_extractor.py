@@ -1,7 +1,23 @@
+"""
+Module for automatically detecting and extracting vector figures from PDFs.
+"""
 import fitz
-from utils import export_svg_from_rect
+from tools.utils import export_svg_from_rect
 
 def extract_figures(doc, layout='double', prefix='Fig.'):
+    """
+    Scans a document for figure captions and uses vector drawing coordinates 
+    (lines, fills, curves) above the caption to dynamically calculate a 
+    bounding box for the figure.
+    
+    Args:
+        doc (fitz.Document): The loaded PyMuPDF document.
+        layout (str): 'single' or 'double' column layout for boundary logic.
+        prefix (str): The text prefix identifying a caption (e.g., 'Fig.').
+        
+    Returns:
+        list: A list of filenames corresponding to the saved SVGs.
+    """
     written_files = []
     
     for page_num, page in enumerate(doc):
@@ -17,6 +33,7 @@ def extract_figures(doc, layout='double', prefix='Fig.'):
             associated_drawings = []
             
             # Scan vector elements sitting directly ABOVE the caption marker
+            # 650 points is used as a safe maximum height for tall/stacked plots
             for d in page.get_drawings():
                 d_rect = d["rect"]
                 if rect.y0 - 650 <= d_rect.y1 <= rect.y0 + 5:
@@ -28,7 +45,7 @@ def extract_figures(doc, layout='double', prefix='Fig.'):
                     else:
                         associated_drawings.append(d_rect)
             
-            # Calculate final extraction boundaries
+            # Calculate final extraction boundaries based on vector footprints
             padding = 15
             if associated_drawings:
                 min_x = min(r.x0 for r in associated_drawings)
@@ -45,7 +62,7 @@ def extract_figures(doc, layout='double', prefix='Fig.'):
                     
                 figure_zone = fitz.Rect(final_left, max(0, min_y - padding), final_right, rect.y0)
             else:
-                # Fallback for purely raster images
+                # Fallback zone if the figure contains only raster images (no vector lines)
                 if layout == 'double':
                     if caption_column == "left":
                         figure_zone = fitz.Rect(0, max(0, rect.y0 - 350), page_center, rect.y0)
