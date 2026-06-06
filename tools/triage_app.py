@@ -11,6 +11,7 @@ import sys
 import tkinter as tk
 from tools.utils import export_svg_from_rect
 
+
 class PDFTriageApp:
     """
     Tkinter application class managing the image viewing, navigation state, 
@@ -149,46 +150,67 @@ class PDFTriageApp:
         self.load_current()
 
 def generate_candidates(doc, layout='double'):
-    """
-    Pre-scans the document using permissive regex to guess locations of 
-    equations and tables, generating bounding boxes for manual UI triage.
-    """
     candidates = []
+
     eq_pattern = re.compile(r'\(\s*[A-Z]?\d+\s*\)$')
     table_pattern = re.compile(r'^TABLE\s+[IVX]+', re.IGNORECASE)
-    
+    fig_pattern = re.compile(r'^(?:FIG\.|Fig\.|Figure|FIGURE)\s+\d+', re.IGNORECASE)
+
     for page_num, page in enumerate(doc):
-        page_center = page.rect.width / 2
         blocks = page.get_text("dict")["blocks"]
-        
+        page_center = page.rect.width / 2
+
         for b in blocks:
             if b['type'] == 0:
                 for line in b["lines"]:
                     text = "".join([span["text"] for span in line["spans"]]).strip()
-                    
+                    bbox = fitz.Rect(line["bbox"])
+
+                    # 1. Check for Equations
                     if eq_pattern.search(text):
-                        bbox = fitz.Rect(line["bbox"])
-                        v_pad = 40 
+                        vertical_pad = 75
                         if layout == 'double':
                             left_x = page_center if bbox.x0 > page_center else 0
                             right_x = page.rect.width if bbox.x0 > page_center else page_center
                         else:
                             left_x, right_x = 0, page.rect.width
-                        eq_zone = fitz.Rect(left_x, max(0, bbox.y0 - v_pad), right_x, min(page.rect.height, bbox.y1 + v_pad))
+
+                        eq_zone = fitz.Rect(left_x, max(0, bbox.y0 - vertical_pad), right_x, min(page.rect.height, bbox.y1 + vertical_pad))
                         candidates.append({'type': 'equation', 'page': page_num, 'bbox': eq_zone})
-                        break 
-                        
+                        break
+
+                    # 2. Check for Tables
                     elif table_pattern.match(text):
-                        bbox = fitz.Rect(line["bbox"])
-                        v_pad_down = 350 
+                        # Tables usually have the caption ABOVE the table content
+                        v_pad_down = 350
                         if layout == 'double':
                             left_x = page_center if bbox.x0 > page_center else 0
                             right_x = page.rect.width if bbox.x0 > page_center else page_center
                         else:
                             left_x, right_x = 0, page.rect.width
+
                         table_zone = fitz.Rect(left_x, max(0, bbox.y0 - 10), right_x, min(page.rect.height, bbox.y1 + v_pad_down))
                         candidates.append({'type': 'table', 'page': page_num, 'bbox': table_zone})
                         break
+
+                    # 3. Check for Figures
+                    elif fig_pattern.match(text):
+                        # Figures usually have the caption BELOW the figure content
+                        v_pad_up = 400
+                        is_left = bbox.x0 < page_center
+                        is_full = (bbox.width > page.rect.width * 0.6)
+
+                        if layout == 'double' and not is_full:
+                            left_x = 0 if is_left else page_center
+                            right_x = page_center if is_left else page.rect.width
+                        else:
+                            left_x, right_x = 0, page.rect.width
+
+                        # Grab a generous box ABOVE the caption
+                        fig_zone = fitz.Rect(left_x, max(0, bbox.y0 - v_pad_up), right_x, bbox.y1)
+                        candidates.append({'type': 'figure', 'page': page_num, 'bbox': fig_zone})
+                        break
+
     return candidates
 
 def run_triage(doc, layout='double', save_dir="triage_outputs"):
