@@ -1,98 +1,80 @@
-# Academic PDF Inspector & Extractor
+# Academic PDF Inspection and Extraction Suite
 
-A robust suite of Python tools designed to programmatically parse, inspect, and extract elements from academic and scientific PDFs. It handles complex parsing challenges—such as double-column layouts, overlapping text, and multi-line equations—by combining automated heuristics with an intuitive Human-in-the-Loop (HITL) GUI.
+A robust Python-based framework designed to programmatically parse, inspect, and extract core elements from scientific literature and academic documents. Optimized to resolve common layout challenges—including double-column formats, text-graphic overlaps, and complex formulas—this system pairs automated background heuristics with an interactive Human-in-the-Loop (HITL) architecture.
 
-## Core Features
+## Workflow Execution Models
 
-* **Figure & Table Extraction**
-  Intelligently isolates and crops vector graphics and tables into clean SVGs.
-* **Equation Isolator**
-  Automatically targets and extracts numbered formulas (e.g., `(1)`).
-* **Programmatic ToC**
-  Generates a Table of Contents by analyzing structural header text (e.g., `I. INTRODUCTION`).
-* **Citation Validator**
-  Scrapes body text to identify orphaned citations or missing bibliography entries.
-* **"Triage" UI**
-  A lightweight Tkinter GUI to quickly approve, reject, or redraw crop boundaries on tricky tables and equations.
-* **Native Highlight Parsing**
-  Leverages your PDF viewer's native highlight tool. Highlight target areas, and the script exports those exact coordinates as SVGs.
+To adapt to the significant stylistic variance across academic publishers, the suite divides its functionality into two distinct processing tiers:
 
-## Installation
+* **Automated Mode (`--figures`, `--tables`, `--equations`, `--toc`, `--citations`)**
+  A high-throughput, headless processing tier requiring zero manual oversight. This mode utilizes geometric layout tracking and regex pattern filtering to bulk-extract structural elements directly into standardized output files.
+* **Semi-Automated Mode (`--triage`, `--highlights`)**
+  An interactive, precision-focused tier designed to maintain absolute layout fidelity. This layout tier leverages computer-assisted structural tracking while integrating human validation to manage non-standard, older archival, or highly complex document structures.
 
-1. Clone the repository:
+---
+
+
+## System Installation
+
+1. Clone the project environment:
    ```bash
    git clone [https://github.com/yourusername/pdf-extractor.git](https://github.com/yourusername/pdf-extractor.git)
    cd pdf-extractor
    ```
-
-2. Install the required Python packages:
+2. Install dependency requirements:
    ```bash
    pip install -r requirements.txt
    ```
-   *(Note: Linux/WSL users must ensure Tkinter is installed globally via `sudo apt install python3-tk`).*
 
-## The Tiered Workflow Strategy
+(Note: Linux/WSL environments require a global Tkinter installation via sudo apt install python3-tk).
 
-Because PDF layouts can vary wildly between journals, this tool is built around a tiered extraction philosophy, balancing automation speed with human accuracy:
+## Execution Instructions
 
-* **Tier 1: Headless Bulk Automation (`--equations`, `--tables`)**
-  Maximum speed, zero human effort. Ideal for researchers scraping hundreds of standard IEEE papers at once to build datasets. Processes everything in the background via automated heuristics.
-* **Tier 2: The Triage App (`--triage`)**
-  Medium speed, low human effort. The algorithm guesses the boundaries, and a human rapidly approves, rejects, or adjusts them via a fast GUI. Perfect for processing a handful of structurally complex papers with perfect accuracy.
-* **Tier 3: Native Highlighting (`--highlights`)**
-  Low speed, high human effort. The user manually highlights targets in a standard PDF viewer, and the script strictly extracts those coordinates. The ultimate fallback for totally unstructured or bizarrely formatted legacy documents.
+The core system is orchestrated via main.py.
 
-## Usage Modes
+1. Automated Execution (Tier 1)
 
-The tool operates via `main.py` and supports the following workflows:
+Run headless extraction heuristics across the entire input file:
+   ```bash
+   # Execute all background automated components
+   python main.py manuscript.pdf --all
 
-### 1. Fully Automated Mode (Tier 1)
-Runs heuristics blindly across the entire document.
-```bash
-# Run all automated extractors
-python main.py paper.pdf --all
+   # Execute isolated target modules
+   python main.py manuscript.pdf --figures --equations
+   ```
 
-# Or run specific headless modules
-python main.py paper.pdf --figures --equations --citations
-```
+2. Interactive Triage Selection (Tier 2)
+Generates coordinate crop hypotheses for difficult equations and data tables, then pushes them to the Tkinter verification app:
+  ```bash
+  python main.py manuscript.pdf --triage
+  ```
+Right Arrow Key: Approve current crop and commit to disk.
+Left Arrow Key: Discard current candidate crop.
+Mouse Left-Click & Drag: Draw a custom bounding rectangle to override an automated layout prediction.
 
-### 2. Human-in-the-Loop Triage Mode (Tier 2)
-Generates candidate crops for equations and tables, then launches a fast Tkinter GUI for manual validation.
-```bash
-python main.py paper.pdf --triage
-```
-* **Right Arrow:** Accept and save crop.
-* **Left Arrow:** Reject and discard candidate.
-* **Mouse Drag:** Draw a custom bounding box to fix an incorrect crop.
+3. Native Highlight Parsing (Tier 3)
+  ```bash
+  python main.py annotated_manuscript.pdf --highlights
+  ```
 
-### 3. Native Highlight Mode (Tier 3)
-Open your PDF in any standard viewer (Acrobat, Preview, Foxit) and use the yellow highlight tool to mark equations, charts, or text blocks. Save the document, then run:
-```bash
-python main.py highlighted_paper.pdf --highlights
-```
-The script will cleanly remove the highlighter annotations from memory and extract unmasked SVGs of the selected areas.
+[Extraction Strategy Overview](extract_overview.md)
 
-## Outputs
-All outputs are saved in a folder determined by (1) the pdf's title or filepath (as a backup) and (2) the usage mode.
+## Command Line Reference
 
-## Command Line Arguments
-
-| Argument | Description |
+| Argument | Specification |
 | :--- | :--- |
-| `-l`, `--layout` | `single` or `double` (default). Adjusts the spatial scanning logic. |
-| `--figures` | Headless extraction of figures to SVG. |
-| `--tables` | Headless extraction of tables to SVG. |
-| `--equations` | Headless extraction of numbered equations to SVG. |
-| `--toc` | Generate a terminal-based Table of Contents. |
-| `--citations` | Validate internal `[#]` citation linkages. |
-| `--triage` | Launch the Tkinter review GUI. |
-| `--highlights`| Extract SVGs from native PDF highlight annotations. |
-| `--all` | Execute all headless automated modules. |
-
-## Contributing
-
-Pull requests are welcome. If you encounter parsing bugs with specific journal formats (e.g., ACM, Nature), please open an issue and include a reproducible PDF sample if possible.
+| `-l`, `--layout` | Sets column context parsing. Options: `single` or `double` (default). |
+| `--figures` | Executes headless background extraction of figures to vector SVG files. |
+| `--tables` | Executes headless background isolation of data tables to SVG files. |
+| `--equations` | Executes headless background isolation of equations to SVG files. |
+| `--toc` | Compiles a programmatic Table of Contents outline to the terminal. |
+| `--citations` | Examines body text formatting to trace and validate bibliography mapping. |
+| `--triage` | Launches the interactive Tkinter verification interface application. |
+| `--highlights`| Parses user-drawn highlight annotations into isolated SVG exports. |
+| `--all` | Runs every headless background processing module in sequence. |
 
 ## License
 
-Distributed under the MIT License. See `LICENSE` for more information.
+Distributed under the terms of the MIT License. Refer to LICENSE for complete terms and compliance details.
+
+

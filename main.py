@@ -36,8 +36,13 @@ def main():
     
     try:
         doc = fitz.open(args.pdf_path)
-        pdf_title = doc.metadata.get("title", args.pdf_path.split(".pdf")[0]).split(" ")
-        pdf_title = "_".join(pdf_title) if pdf_title else "output"
+        full_path = args.pdf_path.split(".pdf")[0]
+
+        pdf_title = doc.metadata.get("title")
+        if not pdf_title:
+            pdf_title = full_path
+
+        pdf_title = pdf_title.replace(" ", "_") if pdf_title else "output"
         second_underscore_idx = pdf_title.find("_", pdf_title.find("_") + 1)
         if second_underscore_idx != -1:
             pdf_title = pdf_title[:second_underscore_idx]
@@ -51,18 +56,19 @@ def main():
     # 1. Automatic Extraction
     if args.figures or args.all:
         print("\n[*] Extracting Figures...")
+        print(pdf_title)
         svgs = extract_figures(doc, layout=args.layout, save_dir=f"{pdf_title}_figures")
-        print(f"    Saved {len(svgs)} figures.")
+        print(f"    Saved {len(svgs)} {pdf_title}_figures.")
 
     if args.tables or args.all:
         print("\n[*] Extracting Tables (Automated)...")
         tables = extract_tables(doc, layout=args.layout, save_dir=f"{pdf_title}_tables")
-        print(f"    Saved {len(tables)} tables.")
+        print(f"    Saved {len(tables)} {pdf_title}_tables.")
 
     if args.equations or args.all:
         print("\n[*] Extracting Equations (Automated)...")
         eqs = extract_equations(doc, layout=args.layout, save_dir=f"{pdf_title}_equations")
-        print(f"    Saved {len(eqs)} equations.")
+        print(f"    Saved {len(eqs)} {pdf_title}_equations.")
 
     if args.toc or args.all:
         print("\n[*] Generating Table of Contents...")
@@ -86,7 +92,7 @@ def main():
         os.makedirs(f"{pdf_title}_highlights", exist_ok=True)
         print("\n[*] Extracting SVGs from PDF Highlights...")
         hl_files = extract_highlights(doc, save_dir=f"{pdf_title}_highlights")
-        print(f"    Saved {len(hl_files)} custom highlight crops.")
+        print(f"    Saved {len(hl_files)} custom highlight crops at {pdf_title}_highlights.")
 
     if args.triage:
         os.makedirs(f"{pdf_title}_triage", exist_ok=True)
